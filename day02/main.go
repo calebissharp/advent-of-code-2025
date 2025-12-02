@@ -53,6 +53,63 @@ func part1(input string) int {
 	return sum
 }
 
+func getFactors(n int) []int {
+	factors := []int{}
+	for i := 1; i <= n; i++ {
+		if n%i == 0 {
+			factors = append(factors, i)
+		}
+	}
+	return factors
+}
+
 func part2(input string) int {
-	return 100
+	sum := 0
+
+	for rangeStr := range strings.SplitSeq(strings.Trim(input, "\n "), ",") {
+		split := strings.Split(rangeStr, "-")
+
+		start, err := strconv.Atoi(split[0])
+		if err != nil {
+			panic(err)
+		}
+		end, err := strconv.Atoi(split[1])
+		if err != nil {
+			panic(err)
+		}
+
+		for i := start; i <= end; i++ {
+			productID := strconv.Itoa(i)
+
+			factors := getFactors(len(productID))
+
+			// Check all possible equally sized chunks
+			for _, chunkSize := range factors {
+				if chunkSize == len(productID) {
+					break
+				}
+				valid := false
+
+				numChunks := len(productID) / chunkSize
+				chunks := []string{}
+				for j := range numChunks {
+					chunks = append(chunks, productID[j*chunkSize:(j+1)*chunkSize])
+				}
+
+				for _, chunk := range chunks {
+					if chunk != chunks[0] {
+						valid = true
+					}
+				}
+
+				if !valid {
+					sum += i
+					break
+				}
+			}
+
+		}
+
+	}
+	return sum
 }
