@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -27,6 +28,17 @@ func main() {
 	}
 }
 
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func mod(n int, q int) int {
+	return ((n % q) + q) % q
+}
+
 func part1(input string) int {
 	// The number of digits on the dial, starting from 0
 	numDigits := 100
@@ -48,20 +60,13 @@ func part1(input string) int {
 			currentDigit -= steps
 		}
 
-		currentDigit = (currentDigit + numDigits) % numDigits
+		currentDigit = mod(currentDigit, numDigits)
 		if currentDigit == 0 {
 			pw += 1
 		}
 	}
 
 	return pw
-}
-
-func abs(x int) int {
-	if x < 0 {
-		return -x
-	}
-	return x
 }
 
 func part2(input string) int {
@@ -79,26 +84,32 @@ func part2(input string) int {
 			panic(err)
 		}
 
-		newDigit := currentDigit
+		op := 0
 
 		if dir == 'R' {
-			newDigit += steps
+			op = steps
 		} else {
-			newDigit -= steps
+			op = -steps
 		}
 
-		if newDigit <= 0 || (newDigit%numDigits) == 0 || newDigit > numDigits {
-			zerosPassed := max(abs(newDigit/numDigits), 1)
-			if currentDigit == 0 && zerosPassed == 1 {
-				zerosPassed = 0
+		// NOTE: Need to use float math because negative integer division rounds *up* (ie. towards 0)
+		numRots := math.Abs(math.Floor(float64(currentDigit+op) / float64(numDigits)))
+
+		newDigit := mod(currentDigit+op, numDigits)
+
+		// FIXME: special cases for left-handed rotations that start or end on 0
+		// Thre's probably a better way of handling this but I'm too stupid. It's
+		// probably some kind of off-by-one error in the logic
+		if op < 0 {
+			if currentDigit == 0 {
+				numRots = max(0, numRots-1)
 			}
-			fmt.Println(zerosPassed)
-			pw += zerosPassed
+			if newDigit == 0 {
+				numRots += 1
+			}
 		}
 
-		newDigit = (newDigit + numDigits*1000) % numDigits
-
-		fmt.Println(currentDigit, line, newDigit, ":", pw)
+		pw += int(numRots)
 
 		currentDigit = newDigit
 	}

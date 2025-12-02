@@ -17,6 +17,25 @@ L99
 R14
 L82`
 
+var example2 = `
+R1000
+L27
+L923`
+
+var example3 = `
+L150
+L50
+`
+
+var example4 = `
+R150
+`
+
+var example5 = `
+L50
+R675
+`
+
 //go:embed input.txt
 var actual string
 
@@ -56,6 +75,31 @@ func TestPart2(t *testing.T) {
 			name:  "example",
 			input: example,
 			want:  6,
+		},
+		{
+			name:  "example2",
+			input: example2,
+			want:  20,
+		},
+		{
+			name:  "example3",
+			input: example3,
+			want:  2,
+		},
+		{
+			name:  "example4",
+			input: example4,
+			want:  2,
+		},
+		{
+			name:  "example5",
+			input: example5,
+			want:  7,
+		},
+		{
+			name:  "actual",
+			input: actual,
+			want:  6379,
 		},
 	}
 	for _, tt := range tests {
