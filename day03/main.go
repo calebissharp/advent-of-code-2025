@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -27,12 +28,12 @@ func main() {
 	}
 }
 
-func findLargestDigit(s string, isLast bool) (digit int, rest string) {
+func findLargestDigit(s string, searchUntilIndex int) (digit int, rest string) {
 	largestDigit := 0
 	largestDigitIndex := 0
 
 	for i, digit := range strings.Split(s, "") {
-		if !isLast && i >= len(s)-1 {
+		if i >= searchUntilIndex {
 			continue
 		}
 
@@ -47,6 +48,9 @@ func findLargestDigit(s string, isLast bool) (digit int, rest string) {
 		}
 	}
 
+	if largestDigitIndex > len(s)-1 {
+		return largestDigit, ""
+	}
 	return largestDigit, s[largestDigitIndex+1:]
 }
 
@@ -54,8 +58,8 @@ func part1(input string) int {
 	totalJoltage := 0
 
 	for bank := range strings.SplitSeq(strings.Trim(input, "\n "), "\n") {
-		firstDigit, rest := findLargestDigit(bank, false)
-		secondDigit, _ := findLargestDigit(rest, true)
+		firstDigit, rest := findLargestDigit(bank, len(bank)-1)
+		secondDigit, _ := findLargestDigit(rest, len(bank))
 
 		joltage := firstDigit*10 + secondDigit
 
@@ -66,5 +70,26 @@ func part1(input string) int {
 }
 
 func part2(input string) int {
-	return 0
+	totalJoltage := 0
+
+	bankSize := 12
+
+	for bank := range strings.SplitSeq(strings.Trim(input, "\n "), "\n") {
+		joltage := 0
+
+		for position := range bankSize + 1 {
+			// how many digits to leave for future positions
+			searchUntilIndex := len(bank) - (bankSize - position)
+			digit, rest := findLargestDigit(bank, searchUntilIndex)
+
+			positionMultiplier := int(math.Pow(float64(10), float64(bankSize-position-1)))
+			joltage += digit * positionMultiplier
+
+			bank = rest
+		}
+
+		totalJoltage += joltage
+	}
+
+	return totalJoltage
 }
