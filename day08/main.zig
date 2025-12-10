@@ -81,10 +81,31 @@ const JunctionGraph = struct {
     }
 
     /// Create circuits by iterating through `pairs`, up to `max_pairs`
-    pub fn createCircuits(self: *JunctionGraph, allocator: std.mem.Allocator, pairs: []CoordPair, max_pairs: usize) !void {
+    pub fn createCircuits(self: *JunctionGraph, allocator: std.mem.Allocator, pairs: []CoordPair, max_pairs: usize) !?struct { *JunctionBox, *JunctionBox } {
         for (pairs[0..@min(max_pairs, pairs.len)]) |pair| {
             const maybeCircuitLeft = self.find_circuit(pair.a);
             const maybeCircuitRight = self.find_circuit(pair.b);
+
+            // Check if this is the last connection before there's only one circuit left.
+            if (self.circuits.items.len <= 2) {
+                // a connection within a circuit won't do anything
+                if (maybeCircuitLeft != null and maybeCircuitRight != null) {
+                    if (maybeCircuitLeft.?.@"0" == maybeCircuitRight.?.@"0") {
+                        continue;
+                    }
+                }
+
+                const lens = try self.circuitSizes(allocator);
+                if (lens.len == 2) {
+                    if (lens[0] + lens[1] == self.junction_boxes.len) {
+                        return .{ pair.a, pair.b };
+                    }
+                } else if (lens.len == 1) {
+                    if (lens[0] + 1 == self.junction_boxes.len) {
+                        return .{ pair.a, pair.b };
+                    }
+                }
+            }
 
             // Box boxes are in a circuit already
             if (maybeCircuitLeft != null and maybeCircuitRight != null) {
@@ -95,6 +116,7 @@ const JunctionGraph = struct {
                 if (circuit_left == circuit_right) {
                     continue;
                 }
+
                 // Each box is in a separate circuit; merge them
                 var it = circuit_right.keyIterator();
                 while (it.next()) |other| {
@@ -120,6 +142,8 @@ const JunctionGraph = struct {
                 try self.circuits.append(allocator, circuit);
             }
         }
+
+        return null;
     }
 
     pub fn circuitSizes(self: *JunctionGraph, allocator: std.mem.Allocator) ![]usize {
@@ -180,19 +204,41 @@ pub fn part1(input: []const u8, max_pairs: usize) !usize {
     const pairs = try graph.closestPairs(allocator, max_pairs);
     defer allocator.free(pairs);
 
-    try graph.createCircuits(allocator, pairs, max_pairs);
+    _ = try graph.createCircuits(allocator, pairs, max_pairs);
 
     const lengths = try graph.circuitSizes(allocator);
 
     return lengths[0] * lengths[1] * lengths[2];
 }
 
+pub fn part2(input: []const u8) !usize {
+    const max_pairs = 100_000_000;
+    const allocator = std.heap.page_allocator;
+
+    var graph = try collect_boxes(allocator, input);
+    defer graph.deinit(allocator);
+
+    const pairs = try graph.closestPairs(allocator, max_pairs);
+    defer allocator.free(pairs);
+
+    const last_pair = try graph.createCircuits(allocator, pairs, max_pairs);
+
+    return last_pair.?.@"0".coord.x * last_pair.?.@"1".coord.x;
+}
+
 pub fn main() !void {
     const p1 = try part1(actual_input, 1000);
+    const p2 = try part2(actual_input);
     std.debug.print("part 1: {}\n", .{p1});
+    std.debug.print("part 2: {}\n", .{p2});
 }
 
 test "part 1 works" {
     try std.testing.expectEqual(40, try part1(test_input, 10));
     try std.testing.expectEqual(66640, try part1(actual_input, 1000));
+}
+
+test "part 2 works" {
+    try std.testing.expectEqual(25272, try part2(test_input));
+    try std.testing.expectEqual(78894156, try part2(actual_input));
 }
